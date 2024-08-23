@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华东交通大学物理实验课程表解析</title>
+    <style type="text/css">
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            max-width: 90%;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .section {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            flex-basis: 100%;
+        }
+
+        .textarea-field {
+            flex-basis: 100%;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+        }
+
+        .button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>华东交通大学物理实验课程表解析</h1>
+        <div class="section">
+            <div class="section-title">网页源代码：</div>
+            <textarea class="textarea-field" id="pageSourceCode" placeholder="网页源代码" rows="5"></textarea>
+        </div>
+        <div class="section">
+            <button class="button" onclick="DoAnalysis()">解析</button>
+        </div>
+    </div>
+    <script>
+        //剪切板复制函数
+        function clipboardCopy(copyStr) {
+            const el = document.createElement('textarea');
+            el.value = copyStr;
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                alert("解析成功，已成功复制到剪切板");
+            } catch (err) {
+                alert("解析成功，但是复制失败：" + err);
+            }
+            document.body.removeChild(el);
+        }
+
+        //绘制按钮点击事件
+        function DoAnalysis() {
+            var sourceCode = document.getElementById("pageSourceCode").value;
+            // 解析网页源代码
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(sourceCode, 'text/html');
+            const courseScheElement = htmlDoc.querySelector('#tablesv');
+            var ret;
+            if (courseScheElement) {
+                try {
+                    ret = parseCourseTable(courseScheElement);
+                } catch (error) {
+                    alert("解析失败：" + error);
+                    return;
+                }
+            } else {
+                alert("解析失败：找不到课表块");
+                return;
+            }
+            clipboardCopy(JSON.stringify(ret));
+        }
+
+        function parseCourseTable(courseScheTable) {
+            const courseItems = [];
+            for (let i = 1; i < courseScheTable.rows.length; i++) {
+                const row = courseScheTable.rows[i];
+                let retItems = parseCourseRow(row);
+                courseItems.push(retItems)
+            }
+
+            return courseItems;
+        }
+
+        // 返回时间1是否比时间2大
+        // 'HH:MM'格式
+        function strTimeCmp(strTime1, strTime2) {
+            let time1 = strTime1.split(':');
+            let time2 = strTime2.split(':');
+            if (time1[0] > time2[0]) {
+                return true;
+            } else if (time1[0] < time2[0]) {
+                return false;
+            } else {
+                if (time1[1] > time2[1]) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        function parseCourseRow(rowElement) {
+            let json = {
+                title: '',
+                location: '',
+                week: 0,
+                start: 0,
+                duration: 0,
+                weeks: [],
+                isauto: false,
+                specialID: 1,
+                specialTimeBegin: '',
+                specialTimeEnd: ''
+            };
+            const contentCells = Array.from(rowElement.querySelectorAll('td'));
+            json.title = contentCells[2].innerText.trim(); // 实验名称
+            json.location = contentCells[8].innerText.trim(); // 实验地点
+            const weekdayTextToNumber = {
+                '星期一': 1,
+                '星期二': 2,
+                '星期三': 3,
+                '星期四': 4,
+                '星期五': 5,
+                '星期六': 6,
+                '星期日': 7,
+            };
+            json.week = weekdayTextToNumber[contentCells[5].innerText.trim()]; // 星期
+            json.weeks.push(Number(contentCells[4].innerText.trim())); // 周数
+            // 获取并且解析时间
+            let rawTimeStr = contentCells[6].innerText.trim();
+            const timeRegex = /(\d{2}:\d{2})~(\d{2}:\d{2})/;
+            const matches = rawTimeStr.match(timeRegex);
+            if (matches.length !== 3) {
+                throw new Error('解析上课时间失败');
+            }
+            const defaultCourseTimeList = [
+                { s: '08:00', e: '08:45' }, { s: '08:55', e: '09:40' },
+                { s: '10:05', e: '10:50' }, { s: '10:55', e: '11:40' },
+                { s: '14:00', e: '14:45' }, { s: '14:55', e: '15:40' },
+                { s: '16:10', e: '16:55' }, { s: '17:05', e: '17:50' },
+                { s: '18:30', e: '19:15' }, { s: '19:25', e: '20:10' },
+            ]
+            let sti = 0;
+            for (; sti < defaultCourseTimeList.length; sti++) {
+                if (strTimeCmp(defaultCourseTimeList[sti].e, matches[1])) {
+                    json.start = sti + 1;
+                    break;
+                }
+            }
+            let endi = sti;
+            let i = sti;
+            for (; i < defaultCourseTimeList.length; i++) {
+                if (defaultCourseTimeList[i].s == matches[2] || strTimeCmp(defaultCourseTimeList[i].s, matches[2])) {
+                    endi = i;
+                    break;
+                }
+            }
+            json.duration = endi - sti;
+            json.specialTimeBegin = matches[1];
+            json.specialTimeEnd = matches[2];
+            // 完成
+            return json;
+        }
+    </script>
+</body>
+
+</html>
