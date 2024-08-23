@@ -26,7 +26,7 @@
 
 ## 4. 解析课程表
 
-打开[这个网页](https://eq_software.gitee.io/analysis-of-the-special-curriculum-schedule-of-ecjtu/wlsyjx.html)
+打开[这个网页](https://xy0797.github.io/Analysis-of-the-Special-Curriculum-Schedule-of-ECJTU/wlsyjx.html)
 
 将复制的网页源代码粘贴到`网页源代码`的输入框中，点击`解析`
 

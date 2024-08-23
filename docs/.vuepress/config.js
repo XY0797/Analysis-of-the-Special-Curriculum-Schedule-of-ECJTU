@@ -10,7 +10,7 @@ export default defineUserConfig({
     contributors: false,
     sidebar: sidebars
   }),
-  base: "/analysis-of-the-special-curriculum-schedule-of-ecjtu/",
+  base: "/Analysis-of-the-Special-Curriculum-Schedule-of-ECJTU/",
   lang: 'zh-CN',
   title: '华东交通大学特殊课程表解析文档站',
   description: '解析特殊课程表'
